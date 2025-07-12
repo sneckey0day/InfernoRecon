@@ -91,23 +91,23 @@ chmod +x setup.sh
 ./setup.sh
 
 # Make the tool executable
-chmod +x themed_recon.py
+chmod +x infernorecon.py
 ```
 
 ### ⚡ **Basic Usage**
 
 ```bash
 # Basic reconnaissance scan
-./themed_recon.py 192.168.1.100
+./infernorecon.py 192.168.1.100
 
 # Silent mode (no sound alerts)
-./themed_recon.py 192.168.1.100 --no-sound
+./infernorecon.py 192.168.1.100 --no-sound
 
 # Extended scan with database enumeration
-./themed_recon.py 192.168.1.100 --timeout 600 --database-enum
+./infernorecon.py 192.168.1.100 --timeout 600 --database-enum
 
 # Advanced credential testing
-./themed_recon.py 192.168.1.100 --advanced-creds
+./infernorecon.py 192.168.1.100 --advanced-creds
 ```
 
 ---
@@ -125,10 +125,10 @@ chmod +x themed_recon.py
 
 ```bash
 # Enable sound alerts (default)
-./themed_recon.py target.com
+./infernorecon.py target.com
 
 # Disable sound alerts
-./themed_recon.py target.com --no-sound
+./infernorecon.py target.com --no-sound
 ```
 
 </details>
@@ -147,7 +147,7 @@ Automatically detects and tests:
 
 ```bash
 # Enable database enumeration
-./themed_recon.py target.com --database-enum
+./infernorecon.py target.com --database-enum
 ```
 
 </details>
@@ -202,25 +202,25 @@ Automatically detects and tests:
 ### 🔒 **Penetration Testing**
 ```bash
 # Comprehensive pentest reconnaissance
-./themed_recon.py target.company.com --timeout 900 --database-enum --advanced-creds
+./infernorecon.py target.company.com --timeout 900 --database-enum --advanced-creds
 ```
 
 ### 🐛 **Bug Bounty Hunting**
 ```bash
 # Quick vulnerability discovery
-./themed_recon.py bounty-target.com --timeout 300
+./infernorecon.py bounty-target.com --timeout 300
 ```
 
 ### 🏢 **Internal Network Assessment**
 ```bash
 # Internal network scan
-./themed_recon.py 10.10.10.100 --no-sound --timeout 600
+./infernorecon.py 10.10.10.100 --no-sound --timeout 600
 ```
 
 ### 🎓 **CTF & Learning**
 ```bash
 # TryHackMe/HackTheBox scanning
-./themed_recon.py 10.10.211.42 --timeout 300
+./infernorecon.py 10.10.211.42 --timeout 300
 ```
 
 ---
@@ -265,7 +265,7 @@ pip3 install requests beautifulsoup4 lxml
 
 ### 🔊 **Custom Sound Alerts**
 ```python
-# Edit themed_recon.py to customize sound files
+# Edit infernorecon.py to customize sound files
 def play_sound_alert(self, alert_type="default"):
     if alert_type == "critical":
         os.system("paplay /path/to/your/critical-sound.wav")
