@@ -19,7 +19,6 @@
 
 <table>
 <tr>
-<td width="50%">
 
 ### 🚀 **Core Features**
 - ⚡ **Ultra-Fast Parallel Scanning**
@@ -30,7 +29,6 @@
 - 💥 **Automatic Exploit Discovery**
 
 </td>
-<td width="50%">
 
 ### 🛡️ **Advanced Modules**
 - 🌐 **Web Content Scraping**
