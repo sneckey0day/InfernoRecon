@@ -223,8 +223,7 @@ class Colors:
 
 | Type       | Link                                                                |
 | ---------- | ------------------------------------------------------------------- |
-| 📧 Email   | [support@yourproject.com](mailto:support@yourproject.com)           |
-| 💬 Discord | [Join Community](https://discord.gg/yourserver)                     |
+| 📧 Email   | [sneckey0day@gmail.com](mailto:sneckey0day@gmail.com)           |
 | 🐛 Issues  | [GitHub Issues](https://github.com/sneckey0day/InfernoRecon/issues) |
 ---
 
