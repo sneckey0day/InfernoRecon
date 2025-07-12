@@ -1,4 +1,4 @@
-# 🚀 InfernoRecon - Advanced Parallel Reconnaissance Framework
+# 🚀 InfernoRecon - Reconnaissance Framework
 
 <div align="center">
 
