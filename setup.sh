@@ -119,11 +119,11 @@ echo -e "${BLUE}[*] Installing DNS enumeration tools...${NC}"
 sudo apt install -y dnsutils dnsrecon dnsenum
 
 # Make the main script executable
-chmod +x recon_tool.py
+chmod +x infernorecon.py
 
 # Create a symbolic link for easy access
 echo -e "${BLUE}[*] Creating symbolic link...${NC}"
-sudo ln -sf $(pwd)/recon_tool.py /usr/local/bin/recon-framework
+sudo ln -sf $(pwd)/infernorecon.py /usr/local/bin/infernorecon
 
 echo -e "${GREEN}"
 echo "╔══════════════════════════════════════════════════════════════╗"
@@ -133,9 +133,9 @@ echo -e "${NC}"
 
 echo -e "${CYAN}[*] All tools have been installed successfully!${NC}"
 echo -e "${YELLOW}[*] You can now run the framework with:${NC}"
-echo -e "${GREEN}    ./recon_tool.py <target_ip>${NC}"
+echo -e "${GREEN}    ./infernorecon.py <target_ip>${NC}"
 echo -e "${GREEN}    or${NC}"
-echo -e "${GREEN}    recon-framework <target_ip>${NC}"
+echo -e "${GREEN}    infernorecon <target_ip>${NC}"
 echo ""
 echo -e "${BLUE}[*] Installed tools:${NC}"
 echo -e "    • RustScan - Fast port scanner"
@@ -149,6 +149,6 @@ echo -e "    • SecLists - Comprehensive wordlists"
 echo -e "    • And many more..."
 echo ""
 echo -e "${PURPLE}[*] Example usage:${NC}"
-echo -e "${CYAN}    ./recon_tool.py 192.168.1.100${NC}"
-echo -e "${CYAN}    ./recon_tool.py example.com --skip-web${NC}"
-echo -e "${CYAN}    ./recon_tool.py 10.10.10.10 --skip-rustscan --threads 100${NC}"
+echo -e "${CYAN}    ./infernorecon.py 192.168.1.100${NC}"
+echo -e "${CYAN}    ./infernorecon.py example.com --skip-web${NC}"
+echo -e "${CYAN}    ./infernorecon.py 10.10.10.10 --skip-rustscan --threads 100${NC}"
