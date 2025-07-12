@@ -1,4 +1,4 @@
-# 🚀 Advanced Parallel Reconnaissance Framework
+# 🚀 InfernoRecon - Advanced Parallel Reconnaissance Framework
 
 <div align="center">
 
@@ -7,351 +7,235 @@
 ![Python](https://img.shields.io/badge/python-3.6+-yellow.svg)
 ![License](https://img.shields.io/badge/license-MIT-red.svg)
 
-**🔥 Lightning-Fast Parallel Network Reconnaissance with Real-Time Exploit Discovery 🔥**
+**🔥 Lightning-Fast Network Recon with Real-Time Exploit Discovery 🔥**
 
-*The most comprehensive reconnaissance framework with AI-powered analysis, sound alerts, and instant exploit discovery*
+*AI-enhanced reconnaissance with live alerts, parallel scans, and smart exploit matching.*
 
 </div>
 
 ---
 
-## 🎯 **Features Overview**
+## 🎯 Features At a Glance
 
-<table>
-<tr>
-
-### 🚀 **Core Features**
-- ⚡ **Ultra-Fast Parallel Scanning**
-- 🔊 **Sound Alerts System**
-- 🎨 **Enhanced UI with Emojis**
-- 📋 **Real-Time Banner Grabbing**
-- 🔧 **Technology Detection**
-- 💥 **Automatic Exploit Discovery**
-
-</td>
-
-### 🛡️ **Advanced Modules**
-- 🌐 **Web Content Scraping**
-- 🗄️ **Database Enumeration**
-- 🔑 **Credential Discovery**
-- 📁 **FTP/SMB Testing**
-- 🎯 **Vulnerability Assessment**
-- 📊 **Professional Reporting**
-
-</td>
-</tr>
-</table>
+| Core Features                | Advanced Modules                 |
+| ---------------------------- | -------------------------------- |
+| ⚡ Parallel Port Scanning     | 🌐 Web Content Scraping          |
+| 🔧 Technology Detection      | 🗄️ DB Enumeration (MySQL, etc.) |
+| 📋 Real-Time Banner Grabbing | 🔑 Credential Discovery          |
+| 💥 Exploit Auto-Search       | 🎯 Vuln Assessment               |
+| 🔊 Sound Alerts              | 📊 Professional Reports          |
 
 ---
 
-## 📸 **Screenshots**
+## 📸 Quick Demo (Live Output)
 
-### 🎬 **Real-Time Scanning in Action**
 ```bash
-[19:16:47] ✅ [FOUND] Port 80/tcp open (http)
-[19:16:48] 📋 [BANNER] BANNER grabbed from port 8080: Server: HFS 2.3...
-[19:16:48] 🔧 [TECH] TECHNOLOGY detected: HFS 2.3
-[19:16:49] 💥 [EXPLOIT] EXPLOITS FOUND for HFS 2.3: 14 exploits
-[19:16:50] 💥 [EXPLOIT]   -> Rejetto HTTP File Server (HFS) - Remote Command Execution
-[19:16:51] 🚨 [CRITICAL] Redis service active on port 6379 - NO AUTH!
-[19:16:52] 🔑 [CREDS] CREDENTIAL: password = admin123
-```
-
-### 📊 **Professional Summary Report**
-```bash
-FINAL SUMMARY:
-  🌐 Open Ports: 12
-  🔗 Web Services: 3  
-  📄 URLs Found: 47
-  🔧 Technologies: 5
-  🗄️ Databases: 2
-  📋 Banners: 8
-  🔑 Credentials: 3
-
-🔧 TECHNOLOGIES: 5 detected with exploit search!
-🗄️ DATABASES: 2 database services found!
-🔑 CRITICAL: 3 credentials found!
+[✓] Port 80 open (http)
+[📋] Banner: Apache 2.4.18
+[🔧] Detected: Apache 2.4.18
+[💥] Exploits Found: 4
+[🚨] Redis (no auth!) on 6379
+[🔑] Creds found: password=admin123
 ```
 
 ---
 
-## 🚀 **Quick Start**
+## ⚙️ Quick Start
 
-### 📦 **Installation**
+### 🧩 Installation
 
 ```bash
-# Clone the repository
 git clone https://github.com/sneckey0day/InfernoRecon.git
 cd InfernoRecon
-
-# Run the setup script (installs all dependencies)
-chmod +x setup.sh
-./setup.sh
-
-# Make the tool executable
+chmod +x setup.sh && ./setup.sh
 chmod +x infernorecon.py
 ```
 
-### ⚡ **Basic Usage**
+### 🔍 Basic Usage
 
 ```bash
-# Basic reconnaissance scan
 ./infernorecon.py 192.168.1.100
-
-# Silent mode (no sound alerts)
 ./infernorecon.py 192.168.1.100 --no-sound
-
-# Extended scan with database enumeration
 ./infernorecon.py 192.168.1.100 --timeout 600 --database-enum
-
-# Advanced credential testing
 ./infernorecon.py 192.168.1.100 --advanced-creds
 ```
 
 ---
 
-## 🛠️ **Advanced Features**
+## 🛠️ Advanced Capabilities
 
-### 🔊 **Sound Alert System**
 <details>
-<summary>Click to expand</summary>
+<summary>🔊 Sound Alerts</summary>
 
-- **🚨 Critical Findings**: High-pitched alert for vulnerabilities
-- **💥 Exploit Discovery**: Medium-pitched alert for available exploits  
-- **🔑 Credentials Found**: Quick beep for discovered credentials
-- **🔇 Toggle Option**: Use `--no-sound` to disable alerts
+| Alert Type     | Sound  |
+| -------------- | ------ |
+| 🚨 Critical    | High   |
+| 💥 Exploits    | Medium |
+| 🔑 Credentials | Beep   |
 
-```bash
-# Enable sound alerts (default)
-./infernorecon.py target.com
-
-# Disable sound alerts
-./infernorecon.py target.com --no-sound
-```
+Toggle with `--no-sound`
 
 </details>
 
-### 🗄️ **Database Enumeration**
 <details>
-<summary>Click to expand</summary>
+<summary>🗄️ Database Enumeration</summary>
 
-Automatically detects and tests:
-- **MySQL** (Port 3306)
-- **PostgreSQL** (Port 5432)
-- **MongoDB** (Port 27017)
-- **Redis** (Port 6379)
-- **MSSQL** (Port 1433)
-- **Oracle** (Port 1521)
+Ports & Services:
 
-```bash
-# Enable database enumeration
-./infernorecon.py target.com --database-enum
-```
+* 3306 (MySQL)
+* 5432 (PostgreSQL)
+* 27017 (MongoDB)
+* 6379 (Redis)
+* 1433 (MSSQL)
+* 1521 (Oracle)
 
 </details>
 
-### 💥 **Exploit Discovery Engine**
 <details>
-<summary>Click to expand</summary>
+<summary>💥 Exploit Discovery Engine</summary>
 
-- **SearchSploit Integration**: Automatic exploit searching
-- **Smart Variations**: Multiple search terms per technology
-- **Real-Time Results**: Instant exploit discovery
-- **Special Cases**: Enhanced searches for common technologies
-
-**Supported Technologies:**
-- Web Servers (Apache, Nginx, IIS)
-- CMS Systems (WordPress, Drupal, Joomla)
-- File Servers (HFS, Rejetto)
-- Programming Languages (PHP, ASP.NET)
-- And many more...
+* 🔍 SearchSploit Integration
+* 🧠 Smart term variation
+* ⚙️ Real-time matching
+* CMS/Web/File server aware
 
 </details>
 
-### 🎨 **Enhanced User Interface**
 <details>
-<summary>Click to expand</summary>
+<summary>🎨 UI/UX Enhancements</summary>
 
-- **🚨 Critical**: Red background + blinking + sound
-- **💥 Exploits**: Red background + sound alert
-- **🔑 Credentials**: Purple + underline + sound
-- **✅ Found**: Bright green + bold
-- **🔧 Technology**: Bright cyan + bold
-- **📋 Banner**: Bright blue + bold
+| Type        | Styling                   |
+| ----------- | ------------------------- |
+| 🚨 Critical | Red + Blinking + Sound    |
+| 💥 Exploit  | Red Background + Sound    |
+| 🔑 Creds    | Purple + Underline + Beep |
+| ✅ Found     | Bright Green + Bold       |
+| 📋 Banners  | Bright Blue + Bold        |
 
 </details>
 
 ---
 
-## 📋 **Command Line Options**
+## 📋 Command Line Options
 
-| Option | Description | Example |
-|--------|-------------|---------|
-| `target` | Target IP or hostname | `192.168.1.100` |
-| `--timeout` | Scan timeout in seconds | `--timeout 600` |
-| `--no-sound` | Disable sound alerts | `--no-sound` |
-| `--database-enum` | Enable database enumeration | `--database-enum` |
-| `--advanced-creds` | Enable advanced credential testing | `--advanced-creds` |
-
----
-
-## 🎯 **Use Cases**
-
-### 🔒 **Penetration Testing**
-```bash
-# Comprehensive pentest reconnaissance
-./infernorecon.py target.company.com --timeout 900 --database-enum --advanced-creds
-```
-
-### 🐛 **Bug Bounty Hunting**
-```bash
-# Quick vulnerability discovery
-./infernorecon.py bounty-target.com --timeout 300
-```
-
-### 🏢 **Internal Network Assessment**
-```bash
-# Internal network scan
-./infernorecon.py 10.10.10.100 --no-sound --timeout 600
-```
-
-### 🎓 **CTF & Learning**
-```bash
-# TryHackMe/HackTheBox scanning
-./infernorecon.py 10.10.211.42 --timeout 300
-```
+| Option             | Description                   |
+| ------------------ | ----------------------------- |
+| `target`           | Target IP/host                |
+| `--timeout`        | Timeout duration (sec)        |
+| `--no-sound`       | Mute alerts                   |
+| `--database-enum`  | Enable DB module              |
+| `--advanced-creds` | Extended credential discovery |
 
 ---
 
-## 📁 **Output Structure**
+## 📁 Output Structure
 
 ```
-advanced_recon_target_timestamp/
-├── 📄 live_findings.json          # Real-time results
-├── 🌐 nmap_detailed.xml           # Nmap scan results
-├── 📋 banner_info.txt             # Collected banners
-├── 💥 exploits_Apache_2.4.18.json # Exploit details
-├── 🔧 technologies.json           # Detected technologies
-├── tmp/                           # Temporary files (auto-cleaned)
+inferno_output/
+├── live_findings.json         
+├── nmap_detailed.xml          
+├── banner_info.txt            
+├── exploits_<tech>.json       
+├── technologies.json          
+├── tmp/
 │   ├── feroxbuster_results.txt
-│   ├── sensitive_files/
-│   └── downloaded_content/
-└── 📊 summary_report.html         # Final report
+│   └── sensitive_files/
+└── summary_report.html         
 ```
 
 ---
 
-## 🔧 **Dependencies**
+## 🔒 Use Cases
 
-### 🐍 **Python Packages**
+| Scenario            | Command Example                    |
+| ------------------- | ---------------------------------- |
+| 🧪 Pentest Recon    | `--database-enum --advanced-creds` |
+| 🎯 Bug Bounty Scan  | `--timeout 300`                    |
+| 🧱 Internal Network | `--no-sound --timeout 600`         |
+| 🎓 CTF Practice     | `--timeout 300`                    |
+
+---
+
+## 🧰 Dependencies
+
+### 🐍 Python
+
 ```bash
 pip3 install requests beautifulsoup4 lxml
 ```
 
-### 🛠️ **External Tools**
-- **nmap** - Network scanning
-- **searchsploit** - Exploit database
-- **feroxbuster** - Directory enumeration
-- **smbclient** - SMB enumeration
-- **enum4linux** - Linux enumeration
+### 🔧 Tools
 
-*All dependencies are automatically installed by the setup script!*
+* `nmap`, `searchsploit`, `feroxbuster`, `enum4linux`, `smbclient`
+
+✅ Auto-installed by `setup.sh`
 
 ---
 
-## 🎨 **Customization**
+## 🎨 Customization Options
 
-### 🔊 **Custom Sound Alerts**
+### 🔊 Sound Alerts
+
 ```python
-# Edit infernorecon.py to customize sound files
-def play_sound_alert(self, alert_type="default"):
-    if alert_type == "critical":
-        os.system("paplay /path/to/your/critical-sound.wav")
+def play_sound_alert(self, alert_type="critical"):
+    os.system("paplay /your/custom.wav")
 ```
 
-### 🎨 **Custom Colors**
+### 🎨 Terminal Colors
+
 ```python
-# Modify the Colors class for custom themes
 class Colors:
-    CUSTOM_CRITICAL = '\033[1;91m'  # Your custom color
+    CRITICAL = '\033[1;91m'
+    INFO = '\033[1;96m'
 ```
 
 ---
 
-## 🤝 **Contributing**
+## 🤝 Contributing
 
-We welcome contributions! Here's how you can help:
-
-### 🐛 **Bug Reports**
-- Use the issue tracker
-- Include system information
-- Provide reproduction steps
-
-### ✨ **Feature Requests**
-- Describe the feature
-- Explain the use case
-- Provide implementation ideas
-
-### 🔧 **Pull Requests**
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+| Type             | Description                       |
+| ---------------- | --------------------------------- |
+| 🐞 Bugs          | Use GitHub Issues w/ full details |
+| ✨ Features       | Describe clearly w/ use case      |
+| 🔧 Pull Requests | Fork → Branch → PR                |
 
 ---
 
-## 📜 **License**
+## 📜 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## ⚠️ **Disclaimer**
-
-**🚨 IMPORTANT: This tool is for authorized security testing only!**
-
-- ✅ Only use on systems you own or have explicit permission to test
-- ✅ Comply with all applicable laws and regulations
-- ✅ Use responsibly and ethically
-- ❌ Do not use for malicious purposes
-- ❌ Do not test systems without permission
-
-The authors are not responsible for any misuse or damage caused by this tool.
+**MIT License** – see `LICENSE` file for full text.
 
 ---
 
-## 🙏 **Acknowledgments**
+## ⚠️ Legal Disclaimer
 
-- **SearchSploit** - Exploit database integration
-- **Nmap** - Network scanning capabilities
-- **Feroxbuster** - Directory enumeration
-- **BeautifulSoup** - Web content parsing
-- **Community** - Bug reports and feature suggestions
+> **This tool is for authorized security testing only.**
+
+* ✅ Use only on systems you own or are authorized to test
+* ❌ No illegal use permitted
+* 🛡️ Responsibility lies with the user
 
 ---
 
-## 📞 **Support**
+## 📞 Support & Docs
 
-### 💬 **Get Help**
-- 📧 **Email**: support@yourproject.com
-- 💬 **Discord**: [Join our server](https://discord.gg/yourserver)
-- 🐛 **Issues**: [GitHub Issues](https://github.com/sneckey0day/InfernoRecon/issues)
-
-### 📚 **Documentation**
-- 📖 **Wiki**: [Project Wiki](https://github.com/yourusername/advanced-recon-framework/wiki)
-- 🎥 **Tutorials**: [YouTube Channel](https://youtube.com/yourchannel)
-- 📝 **Blog**: [Project Blog](https://yourblog.com)
+| Type       | Link                                                                |
+| ---------- | ------------------------------------------------------------------- |
+| 📧 Email   | [support@yourproject.com](mailto:support@yourproject.com)           |
+| 💬 Discord | [Join Community](https://discord.gg/yourserver)                     |
+| 🐛 Issues  | [GitHub Issues](https://github.com/sneckey0day/InfernoRecon/issues) |
+| 📖 Docs    | [Wiki](https://github.com/yourusername/InfernoRecon/wiki)           |
 
 ---
 
 <div align="center">
 
-### 🌟 **Star this repository if you found it helpful!** 🌟
+### ⭐️ Star This Repo If You Found It Useful ⭐️
 
-**Made with ❤️ by the Security Research Community**
+**Built with precision by the Red Team Community**
 
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/advanced-recon-framework.svg?style=social&label=Star)](https://github.com/sneckey0day/InfernoRecon)
-[![GitHub forks](https://img.shields.io/github/forks/yourusername/advanced-recon-framework.svg?style=social&label=Fork)](https://github.com/sneckey0day/InfernoRecon/fork)
+[![GitHub stars](https://img.shields.io/github/stars/sneckey0day/InfernoRecon.svg?style=social)](https://github.com/sneckey0day/InfernoRecon)
 
 </div>
+
+---
