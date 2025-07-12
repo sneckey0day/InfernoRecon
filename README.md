@@ -226,8 +226,6 @@ class Colors:
 | 📧 Email   | [support@yourproject.com](mailto:support@yourproject.com)           |
 | 💬 Discord | [Join Community](https://discord.gg/yourserver)                     |
 | 🐛 Issues  | [GitHub Issues](https://github.com/sneckey0day/InfernoRecon/issues) |
-| 📖 Docs    | [Wiki](https://github.com/yourusername/InfernoRecon/wiki)           |
-
 ---
 
 <div align="center">
