@@ -83,8 +83,8 @@ FINAL SUMMARY:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/advanced-recon-framework.git
-cd advanced-recon-framework
+git clone https://github.com/sneckey0day/VelocityRecon.git
+cd VelocityRecon
 
 # Run the setup script (installs all dependencies)
 chmod +x setup.sh
@@ -338,7 +338,7 @@ The authors are not responsible for any misuse or damage caused by this tool.
 ### 💬 **Get Help**
 - 📧 **Email**: support@yourproject.com
 - 💬 **Discord**: [Join our server](https://discord.gg/yourserver)
-- 🐛 **Issues**: [GitHub Issues](https://github.com/yourusername/advanced-recon-framework/issues)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/sneckey0day/VelocityRecon/issues)
 
 ### 📚 **Documentation**
 - 📖 **Wiki**: [Project Wiki](https://github.com/yourusername/advanced-recon-framework/wiki)
@@ -353,7 +353,7 @@ The authors are not responsible for any misuse or damage caused by this tool.
 
 **Made with ❤️ by the Security Research Community**
 
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/advanced-recon-framework.svg?style=social&label=Star)](https://github.com/yourusername/advanced-recon-framework)
-[![GitHub forks](https://img.shields.io/github/forks/yourusername/advanced-recon-framework.svg?style=social&label=Fork)](https://github.com/yourusername/advanced-recon-framework/fork)
+[![GitHub stars](https://img.shields.io/github/stars/yourusername/advanced-recon-framework.svg?style=social&label=Star)](https://github.com/sneckey0day/VelocityRecon)
+[![GitHub forks](https://img.shields.io/github/forks/yourusername/advanced-recon-framework.svg?style=social&label=Fork)](https://github.com/sneckey0day/VelocityRecon/fork)
 
 </div>
