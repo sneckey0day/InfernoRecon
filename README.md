@@ -56,10 +56,10 @@ chmod +x infernorecon.py
 ### 🔍 Basic Usage
 
 ```bash
-./infernorecon.py 192.168.1.100
-./infernorecon.py 192.168.1.100 --no-sound
-./infernorecon.py 192.168.1.100 --timeout 600 --database-enum
-./infernorecon.py 192.168.1.100 --advanced-creds
+infernorecon 192.168.1.100
+infernorecon 192.168.1.100 --no-sound
+infernorecon 192.168.1.100 --timeout 600 --database-enum
+infernorecon 192.168.1.100 --advanced-creds
 ```
 
 ---
@@ -223,7 +223,7 @@ class Colors:
 
 | Type       | Link                                                                |
 | ---------- | ------------------------------------------------------------------- |
-| 📧 Email   | [sneckey0day@gmail.com](mailto:sneckey0day@gmail.com)           |
+| 📧 Email   | [sneckey0day@gmail.com](mailto:sneckey0day@gmail.com)               |
 | 🐛 Issues  | [GitHub Issues](https://github.com/sneckey0day/InfernoRecon/issues) |
 ---
 
