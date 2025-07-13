@@ -73,6 +73,10 @@ class FastRecon:
         self.database_ports = set()
         self.advanced_creds = []
         self.screenshots = []
+        self.ad_ports = set()  # Active Directory ports
+        self.domain_info = {}  # Domain information
+        self.ad_users = []
+        self.ad_computers = []
         
         # Create output directory and tmp directory
         Path(self.output_dir).mkdir(exist_ok=True)
@@ -377,6 +381,10 @@ class FastRecon:
         elif port in [1433, 3306, 5432, 1521, 27017, 6379, 5984]:  # Database ports
             self.database_ports.add(port)
             threading.Thread(target=self.database_enum, args=(port, service), daemon=True).start()
+            
+        elif port in [88, 389, 636, 3268, 3269, 53] or "ldap" in service.lower() or "kerberos" in service.lower():  # Active Directory ports
+            self.ad_ports.add(port)
+            threading.Thread(target=self.ad_enum, args=(port, service), daemon=True).start()
 
     def web_enum(self, port):
         """Immediate web enumeration"""
@@ -823,9 +831,13 @@ class FastRecon:
                     continue
 
     def ftp_enum(self, port):
-        """FTP enumeration"""
+        """Enhanced FTP enumeration with comprehensive data download"""
         self.active_tasks += 1
         self.log_result(f"Testing FTP on port {port}", "INFO")
+        
+        # Create FTP directory structure
+        ftp_dir = os.path.join(self.output_dir, f"ftp_{port}")
+        Path(ftp_dir).mkdir(exist_ok=True)
         
         try:
             import ftplib
@@ -836,40 +848,220 @@ class FastRecon:
             self.log_result(f"FTP ANONYMOUS ACCESS: port {port}", "CRITICAL",
                           {'type': 'ftp_anonymous', 'port': port})
             
-            # List files immediately
-            files = ftp.nlst()
-            self.log_result(f"FTP files: {len(files)} found", "FOUND", {'files': files[:10]})
+            # Get detailed directory listing
+            files_and_dirs = []
+            try:
+                # Try to get detailed listing
+                ftp.retrlines('LIST', files_and_dirs.append)
+            except:
+                # Fallback to simple listing
+                try:
+                    simple_files = ftp.nlst()
+                    files_and_dirs = [f"- {f}" for f in simple_files]
+                except:
+                    files_and_dirs = []
             
-            # Download interesting files
-            for filename in files[:5]:
-                if filename and not filename.startswith('.'):
-                    try:
-                        ftp_dir = os.path.join(self.output_dir, f"ftp_{port}")
-                        Path(ftp_dir).mkdir(exist_ok=True)
-                        
-                        local_path = os.path.join(ftp_dir, filename)
-                        with open(local_path, 'wb') as f:
-                            ftp.retrbinary(f'RETR {filename}', f.write)
-                        
-                        self.log_result(f"Downloaded: {filename}", "FOUND")
-                        
-                        # Analyze downloaded file
-                        threading.Thread(target=self.analyze_file, args=(local_path,), daemon=True).start()
-                        
-                    except:
-                        continue
+            if files_and_dirs:
+                self.log_result(f"FTP directory listing: {len(files_and_dirs)} items found", "FOUND", 
+                              {'items': files_and_dirs[:10]})
+                
+                # Parse and download files
+                downloaded_count = self.download_ftp_contents(ftp, "/", ftp_dir, depth=0)
+                
+                if downloaded_count > 0:
+                    self.log_result(f"Downloaded {downloaded_count} files from FTP", "CRITICAL",
+                                  {'port': port, 'downloaded': downloaded_count})
+                    
+                    # Analyze downloaded files
+                    threading.Thread(target=self.analyze_ftp_files, args=(ftp_dir,), daemon=True).start()
             
             ftp.quit()
             
-        except:
-            self.log_result(f"FTP anonymous failed on port {port}", "INFO")
+        except Exception as e:
+            # Try common credential combinations
+            self.try_ftp_credentials(port, ftp_dir)
+        
+        self.active_tasks -= 1
+
+    def download_ftp_contents(self, ftp, remote_path, local_dir, depth=0, max_depth=3):
+        """Recursively download FTP contents"""
+        if depth > max_depth:
+            return 0
+            
+        downloaded_count = 0
+        
+        try:
+            # Change to remote directory
+            if remote_path != "/":
+                ftp.cwd(remote_path)
+            
+            # Get directory listing
+            items = []
+            try:
+                ftp.retrlines('LIST', items.append)
+            except:
+                return 0
+            
+            for item in items[:20]:  # Limit items per directory
+                try:
+                    # Parse LIST output
+                    parts = item.split()
+                    if len(parts) < 9:
+                        continue
+                        
+                    permissions = parts[0]
+                    filename = ' '.join(parts[8:])  # Handle filenames with spaces
+                    
+                    if filename in ['.', '..']:
+                        continue
+                    
+                    # Create safe local filename
+                    safe_filename = "".join(c for c in filename if c.isalnum() or c in (' ', '-', '_', '.')).rstrip()
+                    if not safe_filename:
+                        safe_filename = f"unknown_file_{downloaded_count}"
+                    
+                    if permissions.startswith('d'):  # Directory
+                        # Create local directory and recurse
+                        subdir_path = os.path.join(local_dir, safe_filename)
+                        Path(subdir_path).mkdir(exist_ok=True)
+                        
+                        # Save current directory
+                        current_dir = ftp.pwd()
+                        
+                        try:
+                            # Recursively download subdirectory
+                            sub_downloaded = self.download_ftp_contents(ftp, filename, subdir_path, depth + 1, max_depth)
+                            downloaded_count += sub_downloaded
+                            
+                            # Return to parent directory
+                            ftp.cwd(current_dir)
+                            
+                        except Exception as e:
+                            # Return to parent directory on error
+                            try:
+                                ftp.cwd(current_dir)
+                            except:
+                                pass
+                    
+                    else:  # Regular file
+                        local_path = os.path.join(local_dir, safe_filename)
+                        
+                        try:
+                            with open(local_path, 'wb') as f:
+                                ftp.retrbinary(f'RETR {filename}', f.write)
+                            
+                            if os.path.exists(local_path):
+                                file_size = os.path.getsize(local_path)
+                                self.log_result(f"Downloaded FTP file: {filename} ({file_size} bytes)", "FOUND",
+                                              {'file': filename, 'size': file_size, 'path': remote_path})
+                                downloaded_count += 1
+                                
+                                # Skip very large files for analysis
+                                if file_size > 10 * 1024 * 1024:  # 10MB limit
+                                    continue
+                        
+                        except Exception as e:
+                            # Clean up failed download
+                            if os.path.exists(local_path):
+                                os.remove(local_path)
+                
+                except Exception as e:
+                    continue
+        
+        except Exception as e:
+            pass
+        
+        return downloaded_count
+
+    def try_ftp_credentials(self, port, ftp_dir):
+        """Try common FTP credentials"""
+        common_creds = [
+            ('ftp', 'ftp'),
+            ('admin', 'admin'),
+            ('admin', ''),
+            ('root', 'root'),
+            ('user', 'user'),
+            ('test', 'test'),
+            ('guest', 'guest'),
+            ('ftpuser', 'ftpuser')
+        ]
+        
+        for username, password in common_creds:
+            try:
+                import ftplib
+                ftp = ftplib.FTP()
+                ftp.connect(self.target, port, timeout=5)
+                ftp.login(username, password)
+                
+                self.log_result(f"FTP VALID CREDENTIALS: {username}:{password}", "CRITICAL",
+                              {'type': 'ftp_creds', 'username': username, 'password': password, 'port': port})
+                
+                # Download files with valid credentials
+                downloaded_count = self.download_ftp_contents(ftp, "/", ftp_dir, depth=0)
+                if downloaded_count > 0:
+                    threading.Thread(target=self.analyze_ftp_files, args=(ftp_dir,), daemon=True).start()
+                
+                ftp.quit()
+                return
+                
+            except Exception as e:
+                continue
+
+    def analyze_ftp_files(self, ftp_dir):
+        """Analyze downloaded FTP files for interesting content"""
+        self.active_tasks += 1
+        
+        try:
+            for root, dirs, files in os.walk(ftp_dir):
+                for filename in files:
+                    filepath = os.path.join(root, filename)
+                    
+                    # Skip large files to prevent memory issues
+                    if os.path.getsize(filepath) > 1024 * 1024:  # Skip files > 1MB
+                        continue
+                    
+                    try:
+                        # Try to read as text
+                        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                            content = f.read(10000)  # Read first 10KB
+                        
+                        # Look for credentials and sensitive information
+                        self.find_credentials(content, f"ftp://{os.path.basename(filepath)}")
+                        
+                        # Look for interesting file types
+                        if any(ext in filename.lower() for ext in ['.txt', '.log', '.conf', '.config', '.ini', '.xml', '.sql', '.bak']):
+                            self.log_result(f"Interesting FTP file: {filename}", "FOUND",
+                                          {'type': 'interesting_ftp_file', 'file': filename})
+                        
+                        # Look for specific patterns
+                        if any(keyword in content.lower() for keyword in ['password', 'secret', 'key', 'token', 'credential']):
+                            self.log_result(f"FTP file contains sensitive keywords: {filename}", "CRITICAL",
+                                          {'type': 'sensitive_ftp_file', 'file': filename})
+                        
+                        # Look for database dumps
+                        if any(keyword in content.lower() for keyword in ['insert into', 'create table', 'drop table']):
+                            self.log_result(f"FTP file appears to be database dump: {filename}", "CRITICAL",
+                                          {'type': 'database_dump', 'file': filename})
+                    
+                    except Exception as e:
+                        # Try binary analysis for specific file types
+                        if filename.lower().endswith(('.doc', '.docx', '.pdf', '.xls', '.xlsx', '.zip', '.rar')):
+                            self.log_result(f"Found document/archive file: {filename}", "FOUND",
+                                          {'type': 'document_archive', 'file': filename})
+        
+        except Exception as e:
+            pass
         
         self.active_tasks -= 1
 
     def smb_enum(self, port):
-        """SMB enumeration"""
+        """SMB enumeration with data download"""
         self.active_tasks += 1
         self.log_result(f"Testing SMB on port {port}", "INFO")
+        
+        # Create SMB directory structure
+        smb_dir = os.path.join(self.output_dir, f"smb_{port}")
+        Path(smb_dir).mkdir(exist_ok=True)
         
         # Test null session
         cmd = ["smbclient", "-L", self.target, "-N", "-p", str(port)]
@@ -889,8 +1081,222 @@ class FastRecon:
                         self.log_result(f"SMB share: {share_name}", "FOUND", {'share': share_name})
                     except:
                         continue
+            
+            # Download data from accessible shares
+            for share in shares:
+                if share and share not in ['IPC$', 'ADMIN$']:  # Skip administrative shares
+                    threading.Thread(target=self.download_smb_share, 
+                                   args=(share, port, smb_dir), daemon=True).start()
         else:
             self.log_result(f"SMB null session failed on port {port}", "INFO")
+        
+        self.active_tasks -= 1
+
+    def download_smb_share(self, share_name, port, smb_dir):
+        """Download files from SMB share"""
+        self.active_tasks += 1
+        self.log_result(f"Attempting to download from SMB share: {share_name}", "INFO")
+        
+        # Create directory for this share
+        share_dir = os.path.join(smb_dir, share_name.replace('$', '_dollar'))
+        Path(share_dir).mkdir(exist_ok=True)
+        
+        try:
+            # First, try to list files in the share
+            cmd = ["smbclient", f"//{self.target}/{share_name}", "-N", "-p", str(port), "-c", "ls"]
+            result = self.run_command(cmd, 30)
+            
+            if result and result.returncode == 0:
+                self.log_result(f"SMB share {share_name} is accessible", "FOUND", 
+                              {'share': share_name, 'accessible': True})
+                
+                # Parse file listing
+                files_to_download = []
+                directories = []
+                
+                for line in result.stdout.split('\n'):
+                    line = line.strip()
+                    if line and not line.startswith('.') and not line.startswith('\\'):
+                        # Parse smbclient ls output
+                        parts = line.split()
+                        if len(parts) >= 1:
+                            filename = parts[0]
+                            if filename and filename not in ['.', '..']:
+                                # Check if it's a directory (contains 'D' attribute)
+                                if 'D' in line:
+                                    directories.append(filename)
+                                else:
+                                    files_to_download.append(filename)
+                
+                self.log_result(f"Found {len(files_to_download)} files and {len(directories)} directories in {share_name}", 
+                              "FOUND", {'share': share_name, 'files': len(files_to_download), 'dirs': len(directories)})
+                
+                # Download files (limit to prevent overwhelming)
+                downloaded_count = 0
+                for filename in files_to_download[:20]:  # Limit to 20 files per share
+                    if self.download_smb_file(share_name, filename, port, share_dir):
+                        downloaded_count += 1
+                
+                # Explore directories (limited depth)
+                for dirname in directories[:5]:  # Limit to 5 directories
+                    self.explore_smb_directory(share_name, dirname, port, share_dir, depth=1)
+                
+                if downloaded_count > 0:
+                    self.log_result(f"Downloaded {downloaded_count} files from SMB share {share_name}", 
+                                  "CRITICAL", {'share': share_name, 'downloaded': downloaded_count})
+                    
+                    # Analyze downloaded files for credentials
+                    threading.Thread(target=self.analyze_smb_files, args=(share_dir,), daemon=True).start()
+                
+            else:
+                self.log_result(f"SMB share {share_name} not accessible or empty", "INFO")
+                
+        except Exception as e:
+            self.log_result(f"Error accessing SMB share {share_name}: {str(e)}", "WARNING")
+        
+        self.active_tasks -= 1
+
+    def download_smb_file(self, share_name, filename, port, share_dir):
+        """Download a single file from SMB share"""
+        try:
+            # Sanitize filename for local storage
+            safe_filename = "".join(c for c in filename if c.isalnum() or c in (' ', '-', '_', '.')).rstrip()
+            if not safe_filename:
+                safe_filename = "unknown_file"
+            
+            local_path = os.path.join(share_dir, safe_filename)
+            
+            # Use smbclient to download the file
+            cmd = ["smbclient", f"//{self.target}/{share_name}", "-N", "-p", str(port), 
+                   "-c", f"get \"{filename}\" \"{local_path}\""]
+            
+            result = self.run_command(cmd, 60)  # Longer timeout for file downloads
+            
+            if result and result.returncode == 0 and os.path.exists(local_path):
+                file_size = os.path.getsize(local_path)
+                self.log_result(f"Downloaded SMB file: {filename} ({file_size} bytes)", "FOUND",
+                              {'share': share_name, 'file': filename, 'size': file_size})
+                return True
+            else:
+                # Clean up failed download
+                if os.path.exists(local_path):
+                    os.remove(local_path)
+                return False
+                
+        except Exception as e:
+            return False
+
+    def explore_smb_directory(self, share_name, dirname, port, share_dir, depth=1, max_depth=2):
+        """Explore SMB directory recursively (limited depth)"""
+        if depth > max_depth:
+            return
+            
+        try:
+            # Create local directory
+            local_dir = os.path.join(share_dir, dirname.replace('/', '_').replace('\\', '_'))
+            Path(local_dir).mkdir(exist_ok=True)
+            
+            # List files in directory
+            cmd = ["smbclient", f"//{self.target}/{share_name}", "-N", "-p", str(port), 
+                   "-c", f"cd \"{dirname}\"; ls"]
+            
+            result = self.run_command(cmd, 30)
+            
+            if result and result.returncode == 0:
+                files_in_dir = []
+                subdirs = []
+                
+                for line in result.stdout.split('\n'):
+                    line = line.strip()
+                    if line and not line.startswith('.') and not line.startswith('\\'):
+                        parts = line.split()
+                        if len(parts) >= 1:
+                            item_name = parts[0]
+                            if item_name and item_name not in ['.', '..']:
+                                if 'D' in line:
+                                    subdirs.append(item_name)
+                                else:
+                                    files_in_dir.append(item_name)
+                
+                # Download files from this directory (limited)
+                for filename in files_in_dir[:10]:  # Limit files per directory
+                    remote_path = f"{dirname}/{filename}"
+                    self.download_smb_file_with_path(share_name, remote_path, port, local_dir, filename)
+                
+                # Recursively explore subdirectories (limited)
+                for subdir in subdirs[:3]:  # Limit subdirectories
+                    subdir_path = f"{dirname}/{subdir}"
+                    self.explore_smb_directory(share_name, subdir_path, port, share_dir, depth + 1, max_depth)
+                    
+        except Exception as e:
+            pass
+
+    def download_smb_file_with_path(self, share_name, remote_path, port, local_dir, filename):
+        """Download file with full remote path"""
+        try:
+            safe_filename = "".join(c for c in filename if c.isalnum() or c in (' ', '-', '_', '.')).rstrip()
+            if not safe_filename:
+                safe_filename = "unknown_file"
+                
+            local_path = os.path.join(local_dir, safe_filename)
+            
+            cmd = ["smbclient", f"//{self.target}/{share_name}", "-N", "-p", str(port), 
+                   "-c", f"get \"{remote_path}\" \"{local_path}\""]
+            
+            result = self.run_command(cmd, 60)
+            
+            if result and result.returncode == 0 and os.path.exists(local_path):
+                file_size = os.path.getsize(local_path)
+                self.log_result(f"Downloaded: {remote_path} ({file_size} bytes)", "FOUND",
+                              {'share': share_name, 'file': remote_path, 'size': file_size})
+                return True
+            else:
+                if os.path.exists(local_path):
+                    os.remove(local_path)
+                return False
+                
+        except Exception as e:
+            return False
+
+    def analyze_smb_files(self, share_dir):
+        """Analyze downloaded SMB files for interesting content"""
+        self.active_tasks += 1
+        
+        try:
+            for root, dirs, files in os.walk(share_dir):
+                for filename in files:
+                    filepath = os.path.join(root, filename)
+                    
+                    # Skip large files to prevent memory issues
+                    if os.path.getsize(filepath) > 1024 * 1024:  # Skip files > 1MB
+                        continue
+                    
+                    try:
+                        # Try to read as text
+                        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                            content = f.read(10000)  # Read first 10KB
+                        
+                        # Look for credentials and sensitive information
+                        self.find_credentials(content, f"smb://{os.path.basename(filepath)}")
+                        
+                        # Look for interesting file types
+                        if any(ext in filename.lower() for ext in ['.txt', '.log', '.conf', '.config', '.ini', '.xml']):
+                            self.log_result(f"Interesting SMB file: {filename}", "FOUND",
+                                          {'type': 'interesting_smb_file', 'file': filename})
+                        
+                        # Look for specific patterns
+                        if any(keyword in content.lower() for keyword in ['password', 'secret', 'key', 'token', 'credential']):
+                            self.log_result(f"SMB file contains sensitive keywords: {filename}", "CRITICAL",
+                                          {'type': 'sensitive_smb_file', 'file': filename})
+                    
+                    except Exception as e:
+                        # Try binary analysis for specific file types
+                        if filename.lower().endswith(('.doc', '.docx', '.pdf', '.xls', '.xlsx')):
+                            self.log_result(f"Found document file: {filename}", "FOUND",
+                                          {'type': 'document', 'file': filename})
+        
+        except Exception as e:
+            pass
         
         self.active_tasks -= 1
 
@@ -1094,6 +1500,289 @@ class FastRecon:
             sock.close()
         except:
             pass
+
+    def ad_enum(self, port, service):
+        """Active Directory enumeration"""
+        self.active_tasks += 1
+        self.log_result(f"Testing Active Directory on port {port}", "INFO")
+        
+        # Create AD directory structure
+        ad_dir = os.path.join(self.output_dir, f"ad_{port}")
+        Path(ad_dir).mkdir(exist_ok=True)
+        
+        # Identify AD service type
+        if port == 88 or "kerberos" in service.lower():
+            self.kerberos_enum(port, ad_dir)
+        elif port in [389, 636] or "ldap" in service.lower():
+            self.ldap_enum(port, ad_dir)
+        elif port == 53:
+            self.dns_enum_for_ad(port, ad_dir)
+        elif port in [3268, 3269]:
+            self.global_catalog_enum(port, ad_dir)
+        
+        self.active_tasks -= 1
+
+    def ldap_enum(self, port, ad_dir):
+        """LDAP enumeration for Active Directory"""
+        self.log_result(f"Starting LDAP enumeration on port {port}", "INFO")
+        
+        try:
+            # Test anonymous LDAP bind
+            cmd = ["ldapsearch", "-x", "-H", f"ldap://{self.target}:{port}", "-s", "base", "namingcontexts"]
+            result = self.run_command(cmd, 30)
+            
+            if result and result.returncode == 0:
+                self.log_result(f"LDAP ANONYMOUS BIND successful on port {port}", "CRITICAL",
+                              {'type': 'ldap_anonymous', 'port': port})
+                
+                # Extract domain information
+                domain_info = self.extract_domain_info(result.stdout)
+                if domain_info:
+                    self.domain_info.update(domain_info)
+                    self.log_result(f"Domain discovered: {domain_info.get('domain', 'Unknown')}", "CRITICAL",
+                                  {'type': 'domain_info', 'domain': domain_info})
+                
+                # Save LDAP output
+                ldap_file = os.path.join(ad_dir, "ldap_base_info.txt")
+                with open(ldap_file, 'w') as f:
+                    f.write(result.stdout)
+                
+                # Enumerate users and computers
+                threading.Thread(target=self.enumerate_ad_users, args=(port, ad_dir), daemon=True).start()
+                threading.Thread(target=self.enumerate_ad_computers, args=(port, ad_dir), daemon=True).start()
+                
+            else:
+                self.log_result(f"LDAP anonymous bind failed on port {port}", "INFO")
+                
+        except Exception as e:
+            self.log_result(f"LDAP enumeration error: {str(e)}", "WARNING")
+
+    def kerberos_enum(self, port, ad_dir):
+        """Kerberos enumeration"""
+        self.log_result(f"Starting Kerberos enumeration on port {port}", "INFO")
+        
+        try:
+            # Test if Kerberos is responding
+            import socket
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(5)
+            result = sock.connect_ex((self.target, port))
+            sock.close()
+            
+            if result == 0:
+                self.log_result(f"Kerberos service active on port {port}", "FOUND",
+                              {'type': 'kerberos_active', 'port': port})
+                
+                # Try to get realm information using nmap
+                cmd = ["nmap", "-p", str(port), "--script", "krb5-enum-users", self.target]
+                result = self.run_command(cmd, 60)
+                
+                if result and result.returncode == 0:
+                    kerberos_file = os.path.join(ad_dir, "kerberos_info.txt")
+                    with open(kerberos_file, 'w') as f:
+                        f.write(result.stdout)
+                    
+                    # Extract realm information
+                    if "Kerberos" in result.stdout:
+                        self.log_result("Kerberos realm information discovered", "FOUND",
+                                      {'type': 'kerberos_realm'})
+            
+        except Exception as e:
+            self.log_result(f"Kerberos enumeration error: {str(e)}", "WARNING")
+
+    def dns_enum_for_ad(self, port, ad_dir):
+        """DNS enumeration for Active Directory discovery"""
+        self.log_result(f"Starting DNS enumeration for AD on port {port}", "INFO")
+        
+        try:
+            # Try to discover domain controllers via DNS
+            dns_queries = [
+                "_ldap._tcp.dc._msdcs",
+                "_kerberos._tcp.dc._msdcs", 
+                "_gc._tcp",
+                "_ldap._tcp"
+            ]
+            
+            for query in dns_queries:
+                cmd = ["nslookup", "-type=SRV", f"{query}.{self.target}", self.target]
+                result = self.run_command(cmd, 15)
+                
+                if result and result.returncode == 0 and "service" in result.stdout.lower():
+                    self.log_result(f"AD DNS record found: {query}", "CRITICAL",
+                                  {'type': 'ad_dns_record', 'query': query})
+                    
+                    # Save DNS results
+                    dns_file = os.path.join(ad_dir, f"dns_{query.replace('.', '_')}.txt")
+                    with open(dns_file, 'w') as f:
+                        f.write(result.stdout)
+            
+        except Exception as e:
+            self.log_result(f"DNS AD enumeration error: {str(e)}", "WARNING")
+
+    def enumerate_ad_users(self, port, ad_dir):
+        """Enumerate Active Directory users"""
+        self.active_tasks += 1
+        
+        try:
+            # Get domain base DN
+            base_dn = self.domain_info.get('base_dn', '')
+            if not base_dn:
+                base_dn = f"DC={self.target.replace('.', ',DC=')}"
+            
+            # Search for users
+            cmd = ["ldapsearch", "-x", "-H", f"ldap://{self.target}:{port}", 
+                   "-b", base_dn, "(objectClass=user)", "sAMAccountName", "cn", "mail"]
+            result = self.run_command(cmd, 60)
+            
+            if result and result.returncode == 0:
+                users = self.parse_ldap_users(result.stdout)
+                if users:
+                    self.ad_users.extend(users)
+                    self.log_result(f"Found {len(users)} AD users", "CRITICAL",
+                                  {'type': 'ad_users', 'count': len(users), 'users': users[:10]})
+                    
+                    # Save users to file
+                    users_file = os.path.join(ad_dir, "ad_users.txt")
+                    with open(users_file, 'w') as f:
+                        for user in users:
+                            f.write(f"{user}\n")
+                    
+                    # Save detailed LDAP output
+                    users_detail_file = os.path.join(ad_dir, "ad_users_detailed.txt")
+                    with open(users_detail_file, 'w') as f:
+                        f.write(result.stdout)
+            
+        except Exception as e:
+            self.log_result(f"AD user enumeration error: {str(e)}", "WARNING")
+        
+        self.active_tasks -= 1
+
+    def enumerate_ad_computers(self, port, ad_dir):
+        """Enumerate Active Directory computers"""
+        self.active_tasks += 1
+        
+        try:
+            # Get domain base DN
+            base_dn = self.domain_info.get('base_dn', '')
+            if not base_dn:
+                base_dn = f"DC={self.target.replace('.', ',DC=')}"
+            
+            # Search for computers
+            cmd = ["ldapsearch", "-x", "-H", f"ldap://{self.target}:{port}", 
+                   "-b", base_dn, "(objectClass=computer)", "cn", "dNSHostName", "operatingSystem"]
+            result = self.run_command(cmd, 60)
+            
+            if result and result.returncode == 0:
+                computers = self.parse_ldap_computers(result.stdout)
+                if computers:
+                    self.ad_computers.extend(computers)
+                    self.log_result(f"Found {len(computers)} AD computers", "FOUND",
+                                  {'type': 'ad_computers', 'count': len(computers), 'computers': computers[:10]})
+                    
+                    # Save computers to file
+                    computers_file = os.path.join(ad_dir, "ad_computers.txt")
+                    with open(computers_file, 'w') as f:
+                        for computer in computers:
+                            f.write(f"{computer}\n")
+                    
+                    # Save detailed LDAP output
+                    computers_detail_file = os.path.join(ad_dir, "ad_computers_detailed.txt")
+                    with open(computers_detail_file, 'w') as f:
+                        f.write(result.stdout)
+            
+        except Exception as e:
+            self.log_result(f"AD computer enumeration error: {str(e)}", "WARNING")
+        
+        self.active_tasks -= 1
+
+    def extract_domain_info(self, ldap_output):
+        """Extract domain information from LDAP output"""
+        domain_info = {}
+        
+        try:
+            lines = ldap_output.split('\n')
+            for line in lines:
+                if 'namingcontexts:' in line.lower():
+                    dn = line.split(':', 1)[1].strip()
+                    if dn.startswith('DC='):
+                        domain_parts = []
+                        for part in dn.split(','):
+                            if part.strip().startswith('DC='):
+                                domain_parts.append(part.strip()[3:])
+                        
+                        if domain_parts:
+                            domain_info['domain'] = '.'.join(domain_parts)
+                            domain_info['base_dn'] = dn
+                            break
+            
+        except Exception as e:
+            pass
+        
+        return domain_info
+
+    def parse_ldap_users(self, ldap_output):
+        """Parse LDAP output to extract usernames"""
+        users = []
+        
+        try:
+            lines = ldap_output.split('\n')
+            current_user = {}
+            
+            for line in lines:
+                line = line.strip()
+                if line.startswith('sAMAccountName:'):
+                    username = line.split(':', 1)[1].strip()
+                    if username and username not in ['$', 'krbtgt']:
+                        users.append(username)
+                        
+        except Exception as e:
+            pass
+        
+        return list(set(users))  # Remove duplicates
+
+    def parse_ldap_computers(self, ldap_output):
+        """Parse LDAP output to extract computer names"""
+        computers = []
+        
+        try:
+            lines = ldap_output.split('\n')
+            
+            for line in lines:
+                line = line.strip()
+                if line.startswith('cn:'):
+                    computer = line.split(':', 1)[1].strip()
+                    if computer and not computer.endswith('$'):
+                        computers.append(computer)
+                elif line.startswith('dNSHostName:'):
+                    hostname = line.split(':', 1)[1].strip()
+                    if hostname:
+                        computers.append(hostname)
+                        
+        except Exception as e:
+            pass
+        
+        return list(set(computers))  # Remove duplicates
+
+    def global_catalog_enum(self, port, ad_dir):
+        """Global Catalog enumeration"""
+        self.log_result(f"Starting Global Catalog enumeration on port {port}", "INFO")
+        
+        try:
+            # Test Global Catalog connection
+            cmd = ["ldapsearch", "-x", "-H", f"ldap://{self.target}:{port}", "-s", "base", "supportedCapabilities"]
+            result = self.run_command(cmd, 30)
+            
+            if result and result.returncode == 0:
+                self.log_result(f"Global Catalog accessible on port {port}", "FOUND",
+                              {'type': 'global_catalog', 'port': port})
+                
+                # Save GC info
+                gc_file = os.path.join(ad_dir, "global_catalog_info.txt")
+                with open(gc_file, 'w') as f:
+                    f.write(result.stdout)
+            
+        except Exception as e:
+            self.log_result(f"Global Catalog enumeration error: {str(e)}", "WARNING")
 
     def cleanup_tmp_files(self):
         """Clean up temporary files"""
